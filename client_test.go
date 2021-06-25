@@ -1,6 +1,7 @@
 package egts
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func Test_createNavPacket(t *testing.T) {
-	c := NewClient(133552)
+	c := NewClient("", 133552)
 	packet := c.createPacket(time.Date(2018, time.July, 5, 20, 8, 53, 0, time.UTC), 55.55389399769574, 37.43236696287812, 1000, 1000)
 	assert.Equal(t,
 		[]byte{0x1, 0x0, 0x3, 0xb, 0x0, 0x4b, 0x0, 0x1, 0x0, 0x1, 0x3, 0x40, 0x0, 0x1, 0x0, 0x99, 0xb0,
@@ -37,4 +38,67 @@ func Test_createNavPacket(t *testing.T) {
 	if !assert.NoError(t, e) {
 		assert.Equal(t, 0, r)
 	}
+}
+
+func TestSendPacket(t *testing.T) {
+	addr := ":1111"
+
+	r := egts.Package{
+		ProtocolVersion:  1,
+		SecurityKeyID:    0,
+		Prefix:           "00",
+		Route:            "0",
+		EncryptionAlg:    "00",
+		Compression:      "0",
+		Priority:         "11",
+		HeaderLength:     11,
+		HeaderEncoding:   0,
+		FrameDataLength:  3,
+		PacketIdentifier: 0,
+		PacketType:       egts.PtResponsePacket,
+		HeaderCheckSum:   74,
+		ServicesFrameData: &egts.PtResponse{
+			ResponsePacketID: 0,
+			ProcessingResult: egtsPcOk,
+		},
+	}
+	ack, err := r.Encode()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	stateChannel := make(chan bool, 1)
+	mockExportServer(addr, ack, stateChannel)
+	<-stateChannel
+	c := NewClient(addr, 133552)
+	assert.NoError(t, c.SendPacket(55.55389399769574, 37.43236696287812, 0, 0))
+
+}
+
+func mockExportServer(addr string, response []byte, ch chan bool) net.Listener {
+	listener, _ := net.Listen("tcp", addr)
+	go func() {
+		ch <- true
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			} else {
+				defer conn.Close()
+				buf := make([]byte, 1024)
+				l, err := conn.Read(buf)
+				if err != nil {
+					return
+				}
+				if l > 0 {
+					if _, err = conn.Write(response); err != nil {
+						return
+					}
+				}
+
+			}
+		}
+	}()
+
+	return listener
 }

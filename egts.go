@@ -10,6 +10,6 @@ func init() {
 
 type Egts struct{}
 
-func (*Egts) NewClient(clientID uint32) *EgtsClient {
-	return NewClient(clientID)
+func (*Egts) NewClient(addr string, clientID uint32) *EgtsClient {
+	return NewClient(addr, clientID)
 }
