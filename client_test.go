@@ -11,6 +11,7 @@ import (
 
 func Test_createNavPacket(t *testing.T) {
 	c := NewClient("", 133552)
+	defer c.Close()
 	packet := c.createPacket(time.Date(2018, time.July, 5, 20, 8, 53, 0, time.UTC), 55.55389399769574, 37.43236696287812, 1000, 1000)
 	assert.Equal(t,
 		[]byte{0x1, 0x0, 0x3, 0xb, 0x0, 0x4b, 0x0, 0x1, 0x0, 0x1, 0x3, 0x40, 0x0, 0x1, 0x0, 0x99, 0xb0,
@@ -58,7 +59,7 @@ func TestSendPacket(t *testing.T) {
 		PacketType:       egts.PtResponsePacket,
 		HeaderCheckSum:   74,
 		ServicesFrameData: &egts.PtResponse{
-			ResponsePacketID: 0,
+			ResponsePacketID: 1,
 			ProcessingResult: egtsPcOk,
 		},
 	}
@@ -71,6 +72,8 @@ func TestSendPacket(t *testing.T) {
 	mockExportServer(addr, ack, stateChannel)
 	<-stateChannel
 	c := NewClient(addr, 133552)
+	defer c.Close()
+
 	assert.NoError(t, c.SendPacket(55.55389399769574, 37.43236696287812, 0, 0))
 
 }

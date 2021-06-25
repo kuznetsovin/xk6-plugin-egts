@@ -21,6 +21,9 @@ type EgtsClient struct {
 }
 
 func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32) error {
+	if c.Conn == nil {
+		return errors.New("Empty connection")
+	}
 	p := c.createPacket(time.Now().UTC(), lat, lon, sensVal, fuelLvl)
 	n, err := c.Conn.Write(p)
 	if err != nil {
@@ -48,8 +51,8 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 	if ack.ProcessingResult != egtsPcOk {
 		return fmt.Errorf("Incorrect processing result: %d", ack.ProcessingResult)
 	}
-	if ack.ResponsePacketID != uint16(c.actualPID-1) {
-		return fmt.Errorf("Incorrect check packet id: %d != %d", ack.ResponsePacketID, uint16(c.actualPID-1))
+	if ack.ResponsePacketID != uint16(c.actualPID) {
+		return fmt.Errorf("Incorrect check packet id: %d != %d", ack.ResponsePacketID, c.actualPID)
 	}
 
 	if ack.SDR != nil {
@@ -177,6 +180,12 @@ func (c *EgtsClient) createPacket(ts time.Time, lat, lon float64, sensVal uint32
 		log.Println(err)
 	}
 	return result
+}
+
+func (c *EgtsClient) Close() {
+	if c.Conn != nil {
+		c.Conn.Close()
+	}
 }
 
 func NewClient(addr string, clientID uint32) *EgtsClient {
