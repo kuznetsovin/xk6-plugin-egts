@@ -11,7 +11,13 @@ import (
 var actualPID uint32
 var RecordNumber uint32
 
-func createNavPacket(client uint32, ts time.Time, lat, lon float64) []byte {
+type EgtsClient struct {
+	client       uint32
+	actualPID    uint32
+	RecordNumber uint32
+}
+
+func (c *EgtsClient) createNavPacket(ts time.Time, lat, lon float64) []byte {
 	posData := egts.SrPosData{
 		NavigationTime:      ts,
 		Latitude:            lat,
@@ -41,10 +47,10 @@ func createNavPacket(client uint32, ts time.Time, lat, lon float64) []byte {
 		},
 	}
 
-	return createPacketWithRDS(client, rds)
+	return c.createPacketWithRDS(rds)
 }
 
-func createNavPacketWithSensor(client uint32, ts time.Time, lat, lon float64, sensVal uint32) []byte {
+func (c *EgtsClient) createNavPacketWithSensor(ts time.Time, lat, lon float64, sensVal uint32) []byte {
 	posData := egts.SrPosData{
 		NavigationTime:      ts,
 		Latitude:            lat,
@@ -99,10 +105,10 @@ func createNavPacketWithSensor(client uint32, ts time.Time, lat, lon float64, se
 		},
 	}
 
-	return createPacketWithRDS(client, rds)
+	return c.createPacketWithRDS(rds)
 }
 
-func createNavPacketWithFuel(client uint32, ts time.Time, lat, lon float64, fuelLvl uint32) []byte {
+func (c *EgtsClient) createNavPacketWithFuel(ts time.Time, lat, lon float64, fuelLvl uint32) []byte {
 	posData := egts.SrPosData{
 		NavigationTime:      ts,
 		Latitude:            lat,
@@ -146,10 +152,10 @@ func createNavPacketWithFuel(client uint32, ts time.Time, lat, lon float64, fuel
 		},
 	}
 
-	return createPacketWithRDS(client, rds)
+	return c.createPacketWithRDS(rds)
 }
 
-func createPacketWithRDS(client uint32, rds egts.RecordDataSet) []byte {
+func (c *EgtsClient) createPacketWithRDS(rds egts.RecordDataSet) []byte {
 	p := egts.Package{
 		ProtocolVersion:  1,
 		SecurityKeyID:    0,
@@ -160,12 +166,12 @@ func createPacketWithRDS(client uint32, rds egts.RecordDataSet) []byte {
 		Priority:         "11",
 		HeaderLength:     11,
 		HeaderEncoding:   0,
-		PacketIdentifier: uint16(atomic.AddUint32(&actualPID, 1)),
+		PacketIdentifier: uint16(atomic.AddUint32(&c.actualPID, 1)),
 		PacketType:       1,
 		ServicesFrameData: &egts.ServiceDataSet{
 			egts.ServiceDataRecord{
 				RecordLength:             rds.Length(),
-				RecordNumber:             uint16(atomic.AddUint32(&RecordNumber, 1)),
+				RecordNumber:             uint16(atomic.AddUint32(&c.RecordNumber, 1)),
 				SourceServiceOnDevice:    "1",
 				RecipientServiceOnDevice: "0",
 				Group:                    "0",
@@ -173,7 +179,7 @@ func createPacketWithRDS(client uint32, rds egts.RecordDataSet) []byte {
 				TimeFieldExists:          "0",
 				EventIDFieldExists:       "0",
 				ObjectIDFieldExists:      "1",
-				ObjectIdentifier:         client,
+				ObjectIdentifier:         c.client,
 				SourceServiceType:        2,
 				RecipientServiceType:     2,
 				RecordDataSet:            rds,
@@ -185,4 +191,8 @@ func createPacketWithRDS(client uint32, rds egts.RecordDataSet) []byte {
 		fmt.Println(err)
 	}
 	return result
+}
+
+func NewClient(clientID uint32) *EgtsClient {
+	return &EgtsClient{client: clientID}
 }
