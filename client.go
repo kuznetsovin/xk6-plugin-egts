@@ -22,7 +22,7 @@ type EgtsClient struct {
 
 func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32) error {
 	if c.Conn == nil {
-		return errors.New("Empty connection")
+		return errors.New("empty connection")
 	}
 	p := c.createPacket(time.Now().UTC(), lat, lon, sensVal, fuelLvl)
 	n, err := c.Conn.Write(p)
@@ -31,7 +31,7 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 	}
 
 	if n != len(p) {
-		return errors.New("Sending not full packet")
+		return errors.New("sending not full packet")
 	}
 
 	response := make([]byte, 1024)
@@ -45,14 +45,14 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 
 	ack, ok := ackPacket.ServicesFrameData.(*egts.PtResponse)
 	if !ok {
-		return errors.New("Incorrect ack packet")
+		return errors.New("incorrect ack packet")
 	}
 
 	if ack.ProcessingResult != egtsPcOk {
-		return fmt.Errorf("Incorrect processing result: %d", ack.ProcessingResult)
+		return fmt.Errorf("incorrect processing result: %d", ack.ProcessingResult)
 	}
 	if ack.ResponsePacketID != uint16(c.actualPID) {
-		return fmt.Errorf("Incorrect check packet id: %d != %d", ack.ResponsePacketID, c.actualPID)
+		return fmt.Errorf("incorrect check packet id: %d != %d", ack.ResponsePacketID, c.actualPID)
 	}
 
 	if ack.SDR != nil {
@@ -61,7 +61,7 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 				if subRec.SubrecordType == egts.SrRecordResponseType {
 					if response, ok := subRec.SubrecordData.(*egts.SrResponse); ok {
 						if response.RecordStatus != 0 {
-							return fmt.Errorf("Incorrect server processing result. Record status: %d", response.RecordStatus)
+							return fmt.Errorf("incorrect server processing result. Record status: %d", response.RecordStatus)
 						}
 					}
 				}
