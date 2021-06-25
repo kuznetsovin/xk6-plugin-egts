@@ -9,9 +9,9 @@ import (
 )
 
 type EgtsClient struct {
-	client       uint32
+	Client       uint32
 	actualPID    uint32
-	RecordNumber uint32
+	recordNumber uint32
 }
 
 func (c *EgtsClient) createNavPacket(ts time.Time, lat, lon float64) []byte {
@@ -168,7 +168,7 @@ func (c *EgtsClient) createPacketWithRDS(rds egts.RecordDataSet) []byte {
 		ServicesFrameData: &egts.ServiceDataSet{
 			egts.ServiceDataRecord{
 				RecordLength:             rds.Length(),
-				RecordNumber:             uint16(atomic.AddUint32(&c.RecordNumber, 1)),
+				RecordNumber:             uint16(atomic.AddUint32(&c.recordNumber, 1)),
 				SourceServiceOnDevice:    "1",
 				RecipientServiceOnDevice: "0",
 				Group:                    "0",
@@ -176,7 +176,7 @@ func (c *EgtsClient) createPacketWithRDS(rds egts.RecordDataSet) []byte {
 				TimeFieldExists:          "0",
 				EventIDFieldExists:       "0",
 				ObjectIDFieldExists:      "1",
-				ObjectIdentifier:         c.client,
+				ObjectIdentifier:         c.Client,
 				SourceServiceType:        2,
 				RecipientServiceType:     2,
 				RecordDataSet:            rds,
@@ -191,5 +191,5 @@ func (c *EgtsClient) createPacketWithRDS(rds egts.RecordDataSet) []byte {
 }
 
 func NewClient(clientID uint32) *EgtsClient {
-	return &EgtsClient{client: clientID}
+	return &EgtsClient{Client: clientID}
 }
