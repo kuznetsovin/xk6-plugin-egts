@@ -8,9 +8,6 @@ import (
 	"github.com/kuznetsovin/egts-protocol/app/egts"
 )
 
-var actualPID uint32
-var RecordNumber uint32
-
 type EgtsClient struct {
 	client       uint32
 	actualPID    uint32
