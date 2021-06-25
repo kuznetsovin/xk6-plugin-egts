@@ -14,7 +14,7 @@ type EgtsClient struct {
 	recordNumber uint32
 }
 
-func (c *EgtsClient) createNavPacket(ts time.Time, lat, lon float64) []byte {
+func (c *EgtsClient) createPacket(ts time.Time, lat, lon float64, sensVal uint32, fuelLvl uint32) []byte {
 	posData := egts.SrPosData{
 		NavigationTime:      ts,
 		Latitude:            lat,
@@ -44,115 +44,49 @@ func (c *EgtsClient) createNavPacket(ts time.Time, lat, lon float64) []byte {
 		},
 	}
 
-	return c.createPacketWithRDS(rds)
-}
-
-func (c *EgtsClient) createNavPacketWithSensor(ts time.Time, lat, lon float64, sensVal uint32) []byte {
-	posData := egts.SrPosData{
-		NavigationTime:      ts,
-		Latitude:            lat,
-		Longitude:           lon,
-		ALTE:                "0",
-		LOHS:                "0",
-		LAHS:                "0",
-		MV:                  "0",
-		BB:                  "0",
-		CS:                  "0",
-		FIX:                 "0",
-		VLD:                 "1",
-		DirectionHighestBit: 1,
-		AltitudeSign:        0,
-		Speed:               100,
-		Direction:           172,
-		Odometer:            []byte{0x00, 0x00, 0x00},
-		DigitalInputs:       0,
-		Source:              0,
-	}
-
-	sensorData := egts.SrAdSensorsData{
-		DigitalInputsOctetExists1: "0",
-		DigitalInputsOctetExists2: "0",
-		DigitalInputsOctetExists3: "0",
-		DigitalInputsOctetExists4: "0",
-		DigitalInputsOctetExists5: "0",
-		DigitalInputsOctetExists6: "0",
-		DigitalInputsOctetExists7: "0",
-		DigitalInputsOctetExists8: "0",
-		AnalogSensorFieldExists1:  "1",
-		AnalogSensorFieldExists2:  "1",
-		AnalogSensorFieldExists3:  "1",
-		AnalogSensorFieldExists4:  "1",
-		AnalogSensorFieldExists5:  "1",
-		AnalogSensorFieldExists6:  "1",
-		AnalogSensorFieldExists7:  "1",
-		AnalogSensorFieldExists8:  "1",
-		AnalogSensor1:             sensVal,
-	}
-
-	rds := egts.RecordDataSet{
-		egts.RecordData{
-			SubrecordType:   egts.SrPosDataType,
-			SubrecordLength: posData.Length(),
-			SubrecordData:   &posData,
-		},
-		egts.RecordData{
+	if sensVal > 0 {
+		sensorData := egts.SrAdSensorsData{
+			DigitalInputsOctetExists1: "0",
+			DigitalInputsOctetExists2: "0",
+			DigitalInputsOctetExists3: "0",
+			DigitalInputsOctetExists4: "0",
+			DigitalInputsOctetExists5: "0",
+			DigitalInputsOctetExists6: "0",
+			DigitalInputsOctetExists7: "0",
+			DigitalInputsOctetExists8: "0",
+			AnalogSensorFieldExists1:  "1",
+			AnalogSensorFieldExists2:  "1",
+			AnalogSensorFieldExists3:  "1",
+			AnalogSensorFieldExists4:  "1",
+			AnalogSensorFieldExists5:  "1",
+			AnalogSensorFieldExists6:  "1",
+			AnalogSensorFieldExists7:  "1",
+			AnalogSensorFieldExists8:  "1",
+			AnalogSensor1:             sensVal,
+		}
+		rds = append(rds, egts.RecordData{
 			SubrecordType:   egts.SrAdSensorsDataType,
 			SubrecordLength: sensorData.Length(),
 			SubrecordData:   &sensorData,
-		},
+		})
 	}
 
-	return c.createPacketWithRDS(rds)
-}
-
-func (c *EgtsClient) createNavPacketWithFuel(ts time.Time, lat, lon float64, fuelLvl uint32) []byte {
-	posData := egts.SrPosData{
-		NavigationTime:      ts,
-		Latitude:            lat,
-		Longitude:           lon,
-		ALTE:                "0",
-		LOHS:                "0",
-		LAHS:                "0",
-		MV:                  "0",
-		BB:                  "0",
-		CS:                  "0",
-		FIX:                 "0",
-		VLD:                 "1",
-		DirectionHighestBit: 1,
-		AltitudeSign:        0,
-		Speed:               100,
-		Direction:           172,
-		Odometer:            []byte{0x00, 0x00, 0x00},
-		DigitalInputs:       0,
-		Source:              0,
-	}
-
-	fuelData := egts.SrLiquidLevelSensor{
-		LiquidLevelSensorErrorFlag: "0",
-		LiquidLevelSensorValueUnit: "00",
-		RawDataFlag:                "0",
-		LiquidLevelSensorNumber:    3,
-		ModuleAddress:              1,
-		LiquidLevelSensorData:      fuelLvl,
-	}
-
-	rds := egts.RecordDataSet{
-		egts.RecordData{
-			SubrecordType:   egts.SrPosDataType,
-			SubrecordLength: posData.Length(),
-			SubrecordData:   &posData,
-		},
-		egts.RecordData{
+	if fuelLvl > 0 {
+		fuelData := egts.SrLiquidLevelSensor{
+			LiquidLevelSensorErrorFlag: "0",
+			LiquidLevelSensorValueUnit: "00",
+			RawDataFlag:                "0",
+			LiquidLevelSensorNumber:    3,
+			ModuleAddress:              1,
+			LiquidLevelSensorData:      fuelLvl,
+		}
+		rds = append(rds, egts.RecordData{
 			SubrecordType:   egts.SrLiquidLevelSensorType,
 			SubrecordLength: fuelData.Length(),
 			SubrecordData:   &fuelData,
-		},
+		})
 	}
 
-	return c.createPacketWithRDS(rds)
-}
-
-func (c *EgtsClient) createPacketWithRDS(rds egts.RecordDataSet) []byte {
 	p := egts.Package{
 		ProtocolVersion:  1,
 		SecurityKeyID:    0,
