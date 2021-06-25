@@ -102,6 +102,53 @@ func createNavPacketWithSensor(client uint32, ts time.Time, lat, lon float64, se
 	return createPacketWithRDS(client, rds)
 }
 
+func createNavPacketWithFuel(client uint32, ts time.Time, lat, lon float64, fuelLvl uint32) []byte {
+	posData := egts.SrPosData{
+		NavigationTime:      ts,
+		Latitude:            lat,
+		Longitude:           lon,
+		ALTE:                "0",
+		LOHS:                "0",
+		LAHS:                "0",
+		MV:                  "0",
+		BB:                  "0",
+		CS:                  "0",
+		FIX:                 "0",
+		VLD:                 "1",
+		DirectionHighestBit: 1,
+		AltitudeSign:        0,
+		Speed:               100,
+		Direction:           172,
+		Odometer:            []byte{0x00, 0x00, 0x00},
+		DigitalInputs:       0,
+		Source:              0,
+	}
+
+	fuelData := egts.SrLiquidLevelSensor{
+		LiquidLevelSensorErrorFlag: "0",
+		LiquidLevelSensorValueUnit: "00",
+		RawDataFlag:                "0",
+		LiquidLevelSensorNumber:    3,
+		ModuleAddress:              1,
+		LiquidLevelSensorData:      fuelLvl,
+	}
+
+	rds := egts.RecordDataSet{
+		egts.RecordData{
+			SubrecordType:   egts.SrPosDataType,
+			SubrecordLength: posData.Length(),
+			SubrecordData:   &posData,
+		},
+		egts.RecordData{
+			SubrecordType:   egts.SrLiquidLevelSensorType,
+			SubrecordLength: fuelData.Length(),
+			SubrecordData:   &fuelData,
+		},
+	}
+
+	return createPacketWithRDS(client, rds)
+}
+
 func createPacketWithRDS(client uint32, rds egts.RecordDataSet) []byte {
 	p := egts.Package{
 		ProtocolVersion:  1,
