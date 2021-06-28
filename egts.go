@@ -1,6 +1,7 @@
 package egts
 
 import (
+	"context"
 	"log"
 
 	"go.k6.io/k6/js/modules"
@@ -16,8 +17,8 @@ func (*Egts) NewClient(addr string, clientID uint32) *EgtsClient {
 	return NewClient(addr, clientID)
 }
 
-func (*Egts) SendPacket(client *EgtsClient, lat, lon float64, sensVal uint32, fuelLvl uint32) {
-	if err := client.SendPacket(lat, lon, sensVal, fuelLvl); err != nil {
+func (*Egts) SendPacket(ctx context.Context, client *EgtsClient, lat, lon float64, sensVal uint32, fuelLvl uint32) {
+	if err := client.SendPacket(ctx, lat, lon, sensVal, fuelLvl); err != nil {
 		log.Println(err)
 	}
 }

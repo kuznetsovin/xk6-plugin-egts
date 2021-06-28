@@ -1,6 +1,7 @@
 package egts
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"github.com/kuznetsovin/egts-protocol/app/egts"
+	"go.k6.io/k6/lib"
+	"go.k6.io/k6/stats"
 )
 
 const egtsPcOk = 0
@@ -20,11 +23,17 @@ type EgtsClient struct {
 	recordNumber uint32
 }
 
-func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32) error {
+func (c *EgtsClient) SendPacket(ctx context.Context, lat, lon float64, sensVal uint32, fuelLvl uint32) error {
+	state := lib.GetState(ctx)
+	if state == nil {
+		return errors.New("state is empty")
+	}
+
 	if c.Conn == nil {
 		return errors.New("empty connection")
 	}
 	p := c.createPacket(time.Now().UTC(), lat, lon, sensVal, fuelLvl)
+	receivedTime := time.Now().UTC()
 	n, err := c.Conn.Write(p)
 	if err != nil {
 		return err
@@ -38,6 +47,7 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 	if n, err = c.Conn.Read(response); err != nil {
 		return err
 	}
+	now := time.Now().UTC()
 	ackPacket := egts.Package{}
 	if _, err = ackPacket.Decode(response[:n]); err != nil {
 		return err
@@ -45,13 +55,28 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 
 	ack, ok := ackPacket.ServicesFrameData.(*egts.PtResponse)
 	if !ok {
+		stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+			Time:   now,
+			Metric: EgtsPacketFailed,
+			Value:  1.0,
+		})
 		return errors.New("incorrect ack packet")
 	}
 
 	if ack.ProcessingResult != egtsPcOk {
+		stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+			Time:   now,
+			Metric: EgtsPacketFailed,
+			Value:  1.0,
+		})
 		return fmt.Errorf("incorrect processing result: %d", ack.ProcessingResult)
 	}
 	if ack.ResponsePacketID != uint16(c.actualPID) {
+		stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+			Time:   now,
+			Metric: EgtsPacketFailed,
+			Value:  1.0,
+		})
 		return fmt.Errorf("incorrect check packet id: %d != %d", ack.ResponsePacketID, c.actualPID)
 	}
 
@@ -61,6 +86,11 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 				if subRec.SubrecordType == egts.SrRecordResponseType {
 					if response, ok := subRec.SubrecordData.(*egts.SrResponse); ok {
 						if response.RecordStatus != 0 {
+							stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+								Time:   now,
+								Metric: EgtsPacketFailed,
+								Value:  1.0,
+							})
 							return fmt.Errorf("incorrect server processing result. Record status: %d", response.RecordStatus)
 						}
 					}
@@ -68,6 +98,17 @@ func (c *EgtsClient) SendPacket(lat, lon float64, sensVal uint32, fuelLvl uint32
 			}
 		}
 	}
+	stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+		Time:   now,
+		Metric: EgtsProcessTime,
+		Value:  now.Sub(receivedTime).Seconds(),
+	})
+
+	stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+		Time:   now,
+		Metric: EgtsPackets,
+		Value:  1.0,
+	})
 
 	return nil
 }

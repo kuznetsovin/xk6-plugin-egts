@@ -1,12 +1,15 @@
 package egts
 
 import (
+	"context"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/kuznetsovin/egts-protocol/app/egts"
 	"github.com/stretchr/testify/assert"
+	"go.k6.io/k6/lib"
+	"go.k6.io/k6/stats"
 )
 
 func Test_createNavPacket(t *testing.T) {
@@ -74,7 +77,11 @@ func TestSendPacket(t *testing.T) {
 	c := NewClient(addr, 133552)
 	defer c.Close()
 
-	assert.NoError(t, c.SendPacket(55.55389399769574, 37.43236696287812, 0, 0))
+	ctx := lib.WithState(context.Background(), &lib.State{
+		Samples: make(chan<- stats.SampleContainer, 2),
+	})
+
+	assert.NoError(t, c.SendPacket(ctx, 55.55389399769574, 37.43236696287812, 0, 0))
 
 }
 
