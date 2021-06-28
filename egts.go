@@ -22,7 +22,3 @@ func (*Egts) SendPacket(ctx context.Context, client *EgtsClient, lat, lon float6
 		log.Println(err)
 	}
 }
-
-func (*Egts) CloseConnection(client *EgtsClient) {
-	client.Close()
-}
