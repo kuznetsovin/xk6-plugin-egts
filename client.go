@@ -11,6 +11,7 @@ import (
 
 	"github.com/kuznetsovin/egts-protocol/app/egts"
 	"go.k6.io/k6/lib"
+	"go.k6.io/k6/lib/metrics"
 	"go.k6.io/k6/stats"
 )
 
@@ -38,6 +39,11 @@ func (c *EgtsClient) SendPacket(ctx context.Context, lat, lon float64, sensVal u
 	if err != nil {
 		return err
 	}
+	stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+		Time:   receivedTime,
+		Metric: metrics.DataSent,
+		Value:  float64(n),
+	})
 
 	if n != len(p) {
 		return errors.New("sending not full packet")
@@ -48,6 +54,11 @@ func (c *EgtsClient) SendPacket(ctx context.Context, lat, lon float64, sensVal u
 		return err
 	}
 	now := time.Now().UTC()
+	stats.PushIfNotDone(ctx, state.Samples, stats.Sample{
+		Time:   now,
+		Metric: metrics.DataReceived,
+		Value:  float64(n),
+	})
 	ackPacket := egts.Package{}
 	if _, err = ackPacket.Decode(response[:n]); err != nil {
 		return err

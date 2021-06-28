@@ -78,7 +78,7 @@ func TestSendPacket(t *testing.T) {
 	defer c.Close()
 
 	ctx := lib.WithState(context.Background(), &lib.State{
-		Samples: make(chan<- stats.SampleContainer, 2),
+		Samples: make(chan<- stats.SampleContainer, 5),
 	})
 
 	assert.NoError(t, c.SendPacket(ctx, 55.55389399769574, 37.43236696287812, 0, 0))
