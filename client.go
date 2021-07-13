@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kuznetsovin/egts-protocol/app/egts"
+	"github.com/kuznetsovin/egts-protocol/libs/egts"
 	"go.k6.io/k6/lib"
 	"go.k6.io/k6/lib/metrics"
 	"go.k6.io/k6/stats"

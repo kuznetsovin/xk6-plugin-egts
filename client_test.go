@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kuznetsovin/egts-protocol/app/egts"
+	"github.com/kuznetsovin/egts-protocol/libs/egts"
 	"github.com/stretchr/testify/assert"
 	"go.k6.io/k6/lib"
 	"go.k6.io/k6/stats"
